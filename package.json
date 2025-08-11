@@ -1,0 +1,19 @@
+{
+  "name": "binance-api-server",
+  "version": "1.0.0",
+  "description": "REST Server for Binance API Integration.",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^4.18.2",
+    "node-binance-api": "^1.0.11",
+    "path": "^0.12.7",
+    "path-to-regexp": "6.2.1"
+  }
+}

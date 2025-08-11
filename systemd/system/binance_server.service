@@ -1,0 +1,17 @@
+[Unit]
+Description=binance-api-server
+After=nginx.service
+
+[Service]
+Type=simple
+User=coder
+Group=coder
+WorkingDirectory=/home/coder/projects/binance-api-server/
+ExecStart=/home/coder/projects/binance-api-server/bin/binance_server.sh
+Restart=always
+RestartSec=10
+StandardOutput=syslog
+StandardError=syslog
+
+[Install]
+WantedBy=default.target

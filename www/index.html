@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binance Trading Interface</title>
+
+    <!-- CSS Libraries -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- JS Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/luxon.min.js"></script>
+    <script src="js/chart.min.js"></script>
+    <script src="js/chartjs-adapter-luxon.min.js"></script>
+    <script src="js/chartjs-chart-financial.min.js"></script>
+
+    <style>
+        :root {
+            --primary-color: #2a3f54;
+            --secondary-color: #1abb9c;
+            --accent-color: #3498db;
+            --dark-color: #1a2a3a;
+            --light-color: #f8f9fa;
+            --up-color: #1abb9c;
+            --down-color: #e74c3c;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+        }
+        
+        .navbar {
+            background-color: var(--primary-color) !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .banner {
+            background: linear-gradient(135deg, var(--primary-color), var(--dark-color));
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            border-radius: 0 0 10px 10px;
+        }
+        
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            border: none;
+        }
+        
+        .card-header {
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+            font-weight: 600;
+        }
+        
+        .chart-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            height: 60vh;  /* Altura mais adequada. */
+            min-height: 500px;  /* Altura mínima garantida. */
+            position: relative;
+        }
+
+        #priceChart {
+            width: 100% !important;
+            height: 100% !important;
+        }
+        
+        .controls {
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .control-group label {
+            font-weight: bold;
+            margin-bottom: 0;
+            white-space: nowrap;
+        }
+        
+        .order-panel {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .btn-buy {
+            background-color: var(--up-color);
+            color: white;
+        }
+        
+        .btn-sell {
+            background-color: var(--down-color);
+            color: white;
+        }
+        
+        .form-control {
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            font-size: 14px;
+        }
+        
+        .form-select {
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            font-size: 14px;
+        }
+        
+        button {
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: none;
+            font-size: 14px;
+            background-color: var(--secondary-color);
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            opacity: 0.9;
+        }
+        
+        .nav-tabs .nav-link.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .nav-tabs .nav-link {
+            color: var(--primary-color);
+        }
+        
+        .balance-panel {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        /* Added styles for previous balance display. */
+        .previous-balance {
+            font-size: 0.85rem;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+        
+        .balance-change {
+            font-weight: bold;
+        }
+        
+        .positive-change {
+            color: var(--up-color);
+        }
+        
+        .negative-change {
+            color: var(--down-color);
+        }
+        
+        .loading {
+            position: relative;
+        }
+        
+        .loading::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0,0,0,0.1);
+            border-radius: 50%;
+            border-top-color: var(--secondary-color);
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        .footer {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 2rem 0;
+            margin-top: 3rem;
+        }
+
+        @keyframes spin {
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-chart-line me-2"></i>CryptoServer
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="index.html"><i class="fas fa-home me-1"></i> Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="trend.html" target="_blank"><i class="fas fa-chart-pie me-1"></i> Indicadores de Tendência</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="analysis.html" target="_blank"><i class="fas fa-chart-pie me-1"></i> Análises</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="http://maia.maiascript.com:3000/" target="_blank"><i class="fas fa-chart-pie me-1"></i> Negociação</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="about.html" target="_blank"><i class="fas fa-info-circle me-1"></i> Sobre</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Banner -->
+    <div class="banner">
+        <div class="container text-center">
+            <h1><i class="fas fa-exchange-alt me-2"></i>Interface de Negociação</h1>
+            <p class="lead">Negocie criptomoedas com dados em tempo real</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Controls Row -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="coinSelector"><i class="fas fa-coins me-1"></i>Criptomoeda:</label>
+                        <select class="form-select" id="coinSelector">
+                            <option value="" disabled selected>Carregando moedas...</option>
+                        </select>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label for="dataLimit"><i class="fas fa-list-ol me-1"></i>Quantidade de dados:</label>
+                        <select class="form-select" id="dataLimit">
+                            <option value="50">50</option>
+                            <option value="100" selected>100</option>
+                            <option value="200">200</option>
+                            <option value="500">500</option>
+                        </select>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label for="timeInterval"><i class="fas fa-clock me-1"></i>Intervalo:</label>
+                        <select class="form-select" id="timeInterval">
+                            <option value="1m">1 minuto</option>
+                            <option value="5m">5 minutos</option>
+                            <option value="15m">15 minutos</option>
+                            <option value="1h" selected>1 hora</option>
+                            <option value="4h">4 horas</option>
+                            <option value="1d">1 dia</option>
+                        </select>
+                    </div>
+
+                    <button id="update-chart"><i class="fas fa-sync-alt me-1"></i>Atualizar</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content Row -->
+        <div class="row">
+            <!-- Chart Column -->
+            <div class="col-md-8">
+                <div class="chart-container mb-3">
+                    <canvas id="priceChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Order Panel Column -->
+            <div class="col-md-4">
+                <div class="order-panel">
+                    <ul class="nav nav-tabs mb-3">
+                        <li class="nav-item">
+                            <a class="nav-link active" id="buy-tab" data-bs-toggle="tab" href="#buy">Comprar</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="sell-tab" data-bs-toggle="tab" href="#sell">Vender</a>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content">
+                        <!-- Buy Tab -->
+                        <div class="tab-pane fade show active" id="buy">
+                            <div class="mb-3">
+                                <label class="form-label">Quantidade (<span id="buy-coin-symbol">BTC</span>)</label>
+                                <input type="number" class="form-control" id="buy-amount" step="0.000001">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Preço (USDT)</label>
+                                <input type="number" class="form-control" id="buy-price">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Total (USDT)</label>
+                                <input type="number" class="form-control" id="buy-total" readonly>
+                            </div>
+                            <button class="btn btn-buy w-100" id="buy-btn">
+                                <i class="fas fa-shopping-cart me-2"></i>Comprar <span id="buy-coin-name">BTC</span>
+                            </button>
+                        </div>
+                        
+                        <!-- Sell Tab -->
+                        <div class="tab-pane fade" id="sell">
+                            <div class="mb-3">
+                                <label class="form-label">Quantidade (<span id="sell-coin-symbol">BTC</span>)</label>
+                                <input type="number" class="form-control" id="sell-amount" step="0.000001">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Preço (USDT)</label>
+                                <input type="number" class="form-control" id="sell-price">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Total (USDT)</label>
+                                <input type="number" class="form-control" id="sell-total" readonly>
+                            </div>
+                            <button class="btn btn-sell w-100" id="sell-btn">
+                                <i class="fas fa-money-bill-wave me-2"></i>Vender <span id="sell-coin-name">BTC</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Balance Panel -->
+                    <div class="balance-panel">
+                        <h5><i class="fas fa-wallet me-2"></i>Saldo Disponível</h5>
+                        <div class="d-flex justify-content-between">
+                            <span id="base-balance-label">BTC:</span>
+                            <span id="btc-balance">0.000000</span>
+                        </div>
+                        <div id="btc-previous-balance" class="previous-balance"></div>
+                        
+                        <div class="d-flex justify-content-between mt-2">
+                            <span>USDT:</span>
+                            <span id="usdt-balance">0.00</span>
+                        </div>
+                        <div id="usdt-previous-balance" class="previous-balance"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <footer class="footer mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4">
+                    <h5><i class="fas fa-chart-line me-2"></i>CryptoServer</h5>
+                    <p>Plataforma de negociação de criptomoedas com dados em tempo real.</p>
+                </div>
+                <div class="col-md-4">
+                    <h5>Links Rápidos</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="#" class="text-white">Documentação</a></li>
+                        <li><a href="#" class="text-white">API</a></li>
+                        <li><a href="#" class="text-white">GitHub</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h5>Contato</h5>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-envelope me-2"></i> contato@cryptoserver.com</li>
+                        <li><i class="fas fa-globe me-2"></i> www.cryptoserver.com</li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="bg-light">
+            <div class="text-center">
+                <p class="mb-0">© 2023 CryptoServer. Todos os direitos reservados.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Initial settings.
+        const API_URL = 'http://maia.maiascript.com:3000/api';
+        const TOP100_URL = 'http://maia.maiascript.com:9910/top100';
+        let priceChart;
+        let currentPrice = 0;
+        let currentCoin = 'BTC';
+        let coinsList = [];
+        let priceUpdateInterval;
+        let candleUpdateInterval;
+        
+        // Added variables to track previous balances.
+        let previousBalances = {
+            btc: 0,
+            usdt: 0
+        };
+
+        const { FinancialController, CandlestickElement } = Chart.controllers;
+
+        function initChart() {
+            const ctx = document.getElementById('priceChart').getContext('2d');
+            
+            if (priceChart) {
+                priceChart.destroy();
+            }
+
+            priceChart = new Chart(ctx, {
+                type: 'candlestick',
+                data: {
+                    datasets: [{
+                        label: `${currentCoin}/USDT`,
+                        data: [],
+                        color: {
+                            up: 'rgba(26, 187, 156, 1)',
+                            down: 'rgba(231, 76, 60, 1)',
+                            unchanged: 'rgba(153, 153, 153, 1)',
+                        },
+                        borderColor: {
+                            up: 'rgba(26, 187, 156, 1)',
+                            down: 'rgba(231, 76, 60, 1)',
+                            unchanged: 'rgba(153, 153, 153, 1)',
+                        },
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'hour',
+                                displayFormats: {
+                                    minute: 'HH:mm',
+                                    hour: 'DD/MM HH:mm',
+                                    day: 'DD/MM'
+                                }
+                            },
+                            grid: {
+                                display: false
+                            },
+                        },
+                        y: {
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Preço (USDT)'
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                                }
+                            },
+                            afterDataLimits: function(scale) {
+                                const range = scale.max - scale.min;
+                                scale.min = scale.min - (range * 0.05);
+                                scale.max = scale.max + (range * 0.05);
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            position: 'nearest',
+                            callbacks: {
+                                label: function(context) {
+                                    const data = context.raw || {};
+                                    return [
+                                        `Abertura: $${data.o?.toFixed(2) || 'N/A'}`,
+                                        `Máxima: $${data.h?.toFixed(2) || 'N/A'}`,
+                                        `Mínima: $${data.l?.toFixed(2) || 'N/A'}`,
+                                        `Fechamento: $${data.c?.toFixed(2) || 'N/A'}`
+                                    ];
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        async function updateChartData() {
+            const pair = `${currentCoin}USDT`;
+            const interval = document.getElementById('timeInterval').value;
+            const limit = document.getElementById('dataLimit').value;
+
+            try {
+                const response = await fetch(`${API_URL}/candles/${pair}/${interval}?limit=${limit}`);
+                if (!response.ok) throw new Error('Network response was not ok');
+                
+                const candles = await response.json();
+                
+                if (!Array.isArray(candles)) throw new Error('Invalid data format');
+                if (candles.length === 0) throw new Error('Empty candle data');
+                
+                const formattedData = candles.map(candle => ({
+                    x: new Date(candle.time).getTime(),
+                    o: parseFloat(candle.open),
+                    h: parseFloat(candle.high),
+                    l: parseFloat(candle.low),
+                    c: parseFloat(candle.close)
+                }));
+                
+                priceChart.data.datasets[0].data = formattedData;
+                priceChart.data.datasets[0].label = `${currentCoin}/USDT`;
+                
+                priceChart.options.scales.x.time.unit = getTimeUnit(interval);
+                
+                priceChart.update('none');
+                
+                if (formattedData.length > 0) {
+                    const min = Math.min(...formattedData.map(d => d.l));
+                    const max = Math.max(...formattedData.map(d => d.h));
+                    const range = max - min;
+                    
+                    priceChart.options.scales.y.min = min - (range * 0.05);
+                    priceChart.options.scales.y.max = max + (range * 0.05);
+                    
+                    priceChart.update();
+                }
+            } catch (error) {
+                console.error('Error updating chart:', error);
+                
+                const now = luxon.DateTime.now();
+                const fallbackData = [];
+                
+                for (let i = 100; i >= 0; i--) {
+                    const date = now.minus({ hours: i });
+                    const open = 30000 + Math.random() * 5000;
+                    const high = open + Math.random() * 1000;
+                    const low = open - Math.random() * 1000;
+                    const close = low + Math.random() * (high - low);
+                    
+                    fallbackData.push({
+                        x: date.toMillis(),
+                        o: open,
+                        h: high,
+                        l: low,
+                        c: close
+                    });
+                }
+                
+                priceChart.data.datasets[0].data = fallbackData;
+                
+                if (fallbackData.length > 0) {
+                    const min = Math.min(...fallbackData.map(d => d.l));
+                    const max = Math.max(...fallbackData.map(d => d.h));
+                    const range = max - min;
+                    
+                    priceChart.options.scales.y.min = min - (range * 0.05);
+                    priceChart.options.scales.y.max = max + (range * 0.05);
+                }
+                
+                priceChart.update();
+            }
+        }
+        
+        function getTimeUnit(interval) {
+            if (interval.includes('m')) return 'minute';
+            if (interval.includes('h')) return 'hour';
+            if (interval.includes('d')) return 'day';
+            return 'hour';
+        }
+
+        function selectCoin(symbol) {
+            const coin = coinsList.find(c => c.symbol === symbol);
+            if (!coin) return;
+            
+            currentCoin = symbol;
+            
+            document.getElementById('buy-coin-symbol').textContent = symbol;
+            document.getElementById('sell-coin-symbol').textContent = symbol;
+            document.getElementById('buy-coin-name').textContent = symbol;
+            document.getElementById('sell-coin-name').textContent = symbol;
+            document.getElementById('base-balance-label').textContent = `${symbol}:`;
+            
+            if (priceUpdateInterval) clearInterval(priceUpdateInterval);
+            if (candleUpdateInterval) clearInterval(candleUpdateInterval);
+            
+            initChart();
+            updatePrices();
+            updateChartData();
+            updateBalances();
+            
+            candleUpdateInterval = setInterval(updateChartData, 30000);
+        }
+
+        async function updateBalances() {
+            try {
+                // Store current balances as previous before updating.
+                const currentBtcBalance = parseFloat(document.getElementById('btc-balance').textContent) || 0;
+                const currentUsdtBalance = parseFloat(document.getElementById('usdt-balance').textContent) || 0;
+                
+                // Only update previous balances if they're not zero (initial state).
+                if (currentBtcBalance !== 0) previousBalances.btc = currentBtcBalance;
+                if (currentUsdtBalance !== 0) previousBalances.usdt = currentUsdtBalance;
+                
+                // Get new balances.
+                const btcResponse = await fetch(`${API_URL}/balance/${currentCoin}`);
+                const btcData = await btcResponse.json();
+                const newBtcBalance = parseFloat(btcData.balance.available);
+                document.getElementById('btc-balance').textContent = newBtcBalance.toFixed(6);
+                
+                const usdtResponse = await fetch(`${API_URL}/balance/USDT`);
+                const usdtData = await usdtResponse.json();
+                const newUsdtBalance = parseFloat(usdtData.balance.available);
+                document.getElementById('usdt-balance').textContent = newUsdtBalance.toFixed(2);
+                
+                // Update previous balance displays with change information.
+                updatePreviousBalanceDisplay('btc', newBtcBalance);
+                updatePreviousBalanceDisplay('usdt', newUsdtBalance);
+            } catch (error) {
+                console.error('Error updating balances:', error);
+            }
+        }
+        
+        // Added function to update the previous balance display with change information.
+        function updatePreviousBalanceDisplay(currency, newBalance) {
+            const previousBalance = previousBalances[currency];
+            const change = newBalance - previousBalance;
+            const changePercentage = previousBalance !== 0 ? (change / previousBalance) * 100 : 0;
+            
+            const elementId = `${currency}-previous-balance`;
+            const element = document.getElementById(elementId);
+            
+            if (change === 0) {
+                element.innerHTML = `Anterior: ${previousBalance.toFixed(currency === 'btc' ? 6 : 2)}`;
+                return;
+            }
+            
+            const changeClass = change > 0 ? 'positive-change' : 'negative-change';
+            const changeSymbol = change > 0 ? '+' : '';
+            
+            element.innerHTML = `
+                Anterior: ${previousBalance.toFixed(currency === 'btc' ? 6 : 2)} 
+                <span class="balance-change ${changeClass}">
+                    (${changeSymbol}${change.toFixed(currency === 'btc' ? 6 : 2)} 
+                    ${changeSymbol}${Math.abs(changePercentage).toFixed(2)}%)
+                </span>
+            `;
+            
+            // Update the previous balance for next time.
+            previousBalances[currency] = newBalance;
+        }
+        
+        async function loadCoins() {
+            try {
+                const response = await fetch(TOP100_URL);
+                const data = await response.json();
+                
+                if (data.status === 'ok') {
+                    coinsList = data.data.map(coin => ({
+                        symbol: coin[0],
+                        name: coin[1]
+                    }));
+                    
+                    coinsList = coinsList.filter(coin => !['USDT', 'USDC'].includes(coin.symbol));
+                    
+                    updateCoinSelector();
+                    selectCoin('BTC');
+                }
+            } catch (error) {
+                console.error('Erro ao carregar moedas:', error);
+                document.getElementById('coinSelector').innerHTML = '<option value="" disabled selected>Erro ao carregar moedas</option>';
+            }
+        }
+        
+        function updateCoinSelector() {
+            const selector = document.getElementById('coinSelector');
+            selector.innerHTML = '';
+            
+            coinsList.forEach(coin => {
+                const option = document.createElement('option');
+                option.value = coin.symbol;
+                option.textContent = `${coin.name} (${coin.symbol})`;
+                selector.appendChild(option);
+            });
+            
+            selector.addEventListener('change', function() {
+                selectCoin(this.value);
+            });
+        }
+        
+        function setupEventListeners() {
+            document.getElementById('buy-amount').addEventListener('input', calculateBuyTotal);
+            document.getElementById('buy-price').addEventListener('input', calculateBuyTotal);
+            document.getElementById('sell-amount').addEventListener('input', calculateSellTotal);
+            document.getElementById('sell-price').addEventListener('input', calculateSellTotal);
+            
+            document.getElementById('buy-btn').addEventListener('click', placeBuyOrder);
+            document.getElementById('sell-btn').addEventListener('click', placeSellOrder);
+
+            document.getElementById('dataLimit').addEventListener('change', updateChartData);
+            document.getElementById('timeInterval').addEventListener('change', updateChartData);
+
+            // Add update button listener.
+            document.getElementById('update-chart').addEventListener('click', function() {
+                // Update the chart data.
+                updateChartData();
+                
+                // Update the current price.
+                updatePrices();
+                
+                // Show a brief feedback to the user.
+                const btn = this;
+                btn.innerHTML = '<i class="fas fa-check me-1"></i>Atualizado';
+                setTimeout(() => {
+                    btn.innerHTML = '<i class="fas fa-sync-alt me-1"></i>Atualizar';
+                }, 2000);
+            });
+        }
+        
+        function calculateBuyTotal() {
+            const amount = parseFloat(document.getElementById('buy-amount').value) || 0;
+            const price = parseFloat(document.getElementById('buy-price').value) || 0;
+            document.getElementById('buy-total').value = (amount * price).toFixed(2);
+        }
+        
+        function calculateSellTotal() {
+            const amount = parseFloat(document.getElementById('sell-amount').value) || 0;
+            const price = parseFloat(document.getElementById('sell-price').value) || 0;
+            document.getElementById('sell-total').value = (amount * price).toFixed(2);
+        }
+        
+        async function loadBalances() {
+            try {
+                updateBalances();
+            } catch (error) {
+                console.error('Erro ao carregar saldos:', error);
+            }
+        }
+        
+        async function updatePrices() {
+            try {
+                const response = await fetch(`${API_URL}/price/${currentCoin}USDT`);
+                const data = await response.json();
+                currentPrice = parseFloat(data.price);
+                
+                document.getElementById('buy-price').value = currentPrice.toFixed(2);
+                document.getElementById('sell-price').value = currentPrice.toFixed(2);
+                
+                return currentPrice; // Return the price for potential use.
+            } catch (error) {
+                console.error('Erro ao atualizar preços:', error);
+                return null;
+            }
+        }
+        
+        async function placeBuyOrder() {
+            const amount = parseFloat(document.getElementById('buy-amount').value);
+            const price = parseFloat(document.getElementById('buy-price').value);
+            const total = amount * price;
+            
+            if (!amount || !price) {
+                alert('Preencha todos os campos');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/order/buy`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        symbol: `${currentCoin}USDT`,
+                        quantity: amount,
+                        price: price
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+                
+                alert(`Ordem de compra executada! Comprados ${amount} ${currentCoin} por $${total.toFixed(2)}`);
+                loadBalances();
+                
+            } catch (error) {
+                console.error('Erro na ordem de compra:', error);
+                alert(`Erro: ${error.message}`);
+            }
+        }
+        
+        async function placeSellOrder() {
+            const amount = parseFloat(document.getElementById('sell-amount').value);
+            const price = parseFloat(document.getElementById('sell-price').value);
+            const total = amount * price;
+            
+            if (!amount || !price) {
+                alert('Preencha todos os campos');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/order/sell`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        symbol: `${currentCoin}USDT`,
+                        quantity: amount,
+                        price: price
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+                
+                alert(`Ordem de venda executada! Vendidos ${amount} ${currentCoin} por $${total.toFixed(2)}`);
+                loadBalances();
+                
+            } catch (error) {
+                console.error('Erro na ordem de venda:', error);
+                alert(`Erro: ${error.message}`);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCoins();
+            setupEventListeners();
+            loadBalances();
+        });
+    </script>
+</body>
+</html>
