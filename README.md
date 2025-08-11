@@ -1,2 +1,2 @@
-# binance-api-server
-Binance API Server
+# Binance API Server
+Binance API Server.
